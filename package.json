@@ -1,0 +1,36 @@
+{
+  "name": "mcp-finance-server",
+  "version": "1.0.0",
+  "description": "MCP server for stock and crypto charts, summaries, comparisons, and market movers with interactive UI widgets",
+  "author": "Superlayzer",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/superlayzer/mcp-finance-server.git"
+  },
+  "keywords": ["mcp", "model-context-protocol", "finance", "stocks", "crypto", "charts", "cloudflare-workers", "ext-apps"],
+  "packageManager": "pnpm@10.19.0",
+  "engines": { "node": ">=20.0.0" },
+  "scripts": {
+    "dev": "tsx watch src/node.ts",
+    "build": "tsc",
+    "start": "node dist/node.js",
+    "typecheck": "tsc --noEmit",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "@hono/node-server": "^1.0.0",
+    "fetch-to-node": "^2.1.0",
+    "hono": "^4.0.0",
+    "zod": "^4.3.5"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.0.0",
+    "@types/node": "^20.0.0",
+    "tsx": "^4.19.1",
+    "typescript": "^5.8.2",
+    "wrangler": "^4.0.0"
+  }
+}
