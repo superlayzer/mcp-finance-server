@@ -22,7 +22,11 @@ function createMcpServer(): McpServer {
   return server;
 }
 
-const app = new Hono();
+type Bindings = {
+  MCP_API_KEY?: string;
+};
+
+const app = new Hono<{ Bindings: Bindings }>();
 
 app.use(
   "*",
@@ -31,6 +35,7 @@ app.use(
     allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
     allowHeaders: [
       "Content-Type",
+      "Authorization",
       "mcp-session-id",
       "Last-Event-ID",
       "mcp-protocol-version",
@@ -40,6 +45,20 @@ app.use(
 );
 
 app.get("/", (c) => c.json({ name: "mcp-finance-server", version: "1.0.0" }));
+
+// Optional API key authentication.
+// Set MCP_API_KEY env var to require Bearer token auth.
+// If not set, the server is open access.
+app.use("/mcp", async (c, next) => {
+  const apiKey = c.env.MCP_API_KEY ?? process.env.MCP_API_KEY;
+  if (!apiKey) return next();
+
+  const auth = c.req.header("Authorization");
+  if (auth !== `Bearer ${apiKey}`) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  return next();
+});
 
 app.all("/mcp", async (c) => {
   const { req, res } = toReqRes(c.req.raw);
