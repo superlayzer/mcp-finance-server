@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { toFetchResponse, toReqRes } from "fetch-to-node";
@@ -46,6 +47,17 @@ app.use(
 
 app.get("/", (c) => c.json({ name: "mcp-finance-server", version: "1.0.0" }));
 
+/**
+ * Timing-safe string comparison to prevent
+ * timing attacks on API key validation.
+ */
+function safeCompare(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return timingSafeEqual(bufA, bufB);
+}
+
 // Optional API key authentication.
 // Set MCP_API_KEY env var to require Bearer token auth.
 // If not set, the server is open access.
@@ -54,13 +66,17 @@ app.use("/mcp", async (c, next) => {
   if (!apiKey) return next();
 
   const auth = c.req.header("Authorization");
-  if (auth !== `Bearer ${apiKey}`) {
+  if (!safeCompare(auth ?? "", `Bearer ${apiKey}`)) {
     return c.json({ error: "Unauthorized" }, 401);
   }
   return next();
 });
 
 app.all("/mcp", async (c) => {
+  const body = await c.req.raw
+    .clone()
+    .json()
+    .catch(() => undefined);
   const { req, res } = toReqRes(c.req.raw);
   const server = createMcpServer();
   const transport = new StreamableHTTPServerTransport({
@@ -71,11 +87,7 @@ app.all("/mcp", async (c) => {
     server.close();
   });
   await server.connect(transport);
-  await transport.handleRequest(
-    req,
-    res,
-    await c.req.json().catch(() => undefined),
-  );
+  await transport.handleRequest(req, res, body);
   return toFetchResponse(res);
 });
 
